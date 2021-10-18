@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity4"
+      xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="UTF-8">
+    <title>仓库页面</title>
+    <!--<script src="/element-ui-2.13.2.js"></script>-->
+    <script src="/vue.js"></script>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- 引入组件库 -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="/axios.min.js"></script>
+    <style>
+        .el-header {
+            background-color: #B3C0D1;
+            color: #333;
+            line-height: 60px;
+        }
+
+        .el-aside {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+      <span id="aa">
+        </span>
+    <span>登录了</span>
+
+    <div>
+        <!--导航栏-->
+        <el-container style="border: 1px solid #eee">
+        <el-aside width="300px" style="background-color: rgb(238, 241, 246)">
+            <el-menu :default-openeds="['1', '3']">
+                <el-submenu index="1">
+                    <template slot="title"><i class="el-icon-caret-bottom"></i>系统菜单</template>
+
+                    <el-submenu index="1-4">
+                        <template slot="title">收货管理</template>
+                        <a href="/page/storelist"><el-menu-item index="1-4-1">仓库管理</el-menu-item></a>
+                    </el-submenu>
+                    <el-submenu index="1-4">
+                        <template slot="title">库存查询</template>
+                        <a href="/page/index"><el-menu-item index="1-4-1">入库</el-menu-item></a>
+                        <a href="/page/storelist"><el-menu-item index="1-4-1">出库</el-menu-item></a>
+                        <a href="/page/storelist"><el-menu-item index="1-4-1">历史记录</el-menu-item></a>
+                        <a href="/page/storelist"><el-menu-item index="1-4-1">重新登陆</el-menu-item></a>
+                    </el-submenu>
+                </el-submenu>
+
+            </el-menu>
+        </el-aside>
+
+        <el-container>
+            <el-header style="text-align: right; font-size: 16px">
+            </el-header>
+
+
+    <template>
+        <!--修改的弹窗-->
+        <el-dialog title="修改" :visible.sync="dialogFormVisible">
+            <el-form :model="storeByEdit">
+                <el-form-item label="名称" :label-width="formLabelWidth">
+                    <el-input v-model="storeByEdit.name"></el-input>
+                </el-form-item>
+                <el-form-item label="地址" :label-width="formLabelWidth">
+                    <el-input v-model="storeByEdit.address"></el-input>
+                </el-form-item>
+                <el-form-item label="管理员" :label-width="formLabelWidth">
+                    <el-input v-model="storeByEdit.manager"></el-input>
+                </el-form-item>
+
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="dialogFormVisible = false">取 消</el-button>
+                <el-button type="primary" @click="updateStore">确 定</el-button>
+            </div>
+        </el-dialog>
+
+        <!--添加的弹窗-->
+        <el-dialog title="创建仓库" :visible.sync="adddialogFormVisible">
+            <el-form :model="store">
+                <el-form-item label="名称" :label-width="formLabelWidth">
+                    <el-input v-model="store.name"></el-input>
+                </el-form-item>
+                <el-form-item label="地址" :label-width="formLabelWidth">
+                    <el-input v-model="store.address"></el-input>
+                </el-form-item>
+                <el-form-item label="管理员" :label-width="formLabelWidth">
+                    <el-input v-model="store.manager"></el-input>
+                </el-form-item>
+
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="adddialogFormVisible = false">取 消</el-button>
+                <el-button type="primary" @click="addStore">确 定</el-button>
+            </div>
+        </el-dialog>
+
+        <!--导航栏-->
+
+        <!--表格-->
+        <el-table
+                :data="tableData"
+                style="width: 100%">
+            <el-table-column
+                    prop="name"
+                    label="名称"
+                    width="180">
+            </el-table-column>
+            <el-table-column
+                    prop="address"
+                    label="地址"
+                    width="180">
+            </el-table-column>
+            <el-table-column
+                    prop="manager"
+                    label="管理员">
+            </el-table-column>
+
+
+            <el-table-column label="操作">
+                <template slot-scope="scope">
+                    <el-button
+                            size="mini"
+                            type="success"
+                            @click="handleEdit(scope.$index, scope.row)">修改</el-button>
+                    <el-popover placement="top" width="160">
+                        <p>确定删除该条数据嘛？</p>
+                        <div style="text-align: right; margin: 0">
+                            <el-button size="mini" type="text" @click="visible">取消</el-button>
+                            <el-button type="primary" size="mini" @click="visible(scope.$index, scope.row)">确定</el-button>
+                        </div>
+                        <el-button
+                                size="mini" slot="reference"
+                                type="primary">删除</el-button></el-popover>
+                </template>
+            </el-table-column>
+
+        </el-table>
+
+        <!--添加-->
+        <el-button  @click="addBtn">创建新仓库</el-button>
+        <!--分页-->
+        <div class="block">
+            <el-pagination
+                    @size-change="handleSizeChange"
+                    @current-change="handleCurrentChange"
+                    :current-page="currentPage"
+                    :page-sizes="[10, 20, 30, 40]"
+                    :page-size="10"
+                    layout="total, sizes, prev, pager, next, jumper"
+                    :total="total">
+            </el-pagination>
+
+        </div>
+
+
+
+    </template>
+
+        </el-container>
+        </el-container>
+    </div>
+
+
+
+</div>
+<script>
+    var vm = new Vue({
+        el:"#app",
+        data:{
+            tableData:[],
+            currentPage: 1,
+            page: 1,
+            limit: 10,
+            total: 0,
+            formLabelWidth: '100px',
+            storeByEdit:{
+            },
+            store:{},
+            dialogFormVisible: false,
+            adddialogFormVisible:false,
+        },
+        methods:{
+            handleOpen(key, keyPath) {
+                console.log(key, keyPath);
+            },
+            handleClose(key, keyPath) {
+                console.log(key, keyPath);
+            },
+            visible(index, row) {
+                axios.get("/store/del",{
+                    params:{
+                        id:row.id
+                    }
+                }).then(res=>{
+                    console.log(res)
+                    if(res.data.code=200){
+                    this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                }else{
+                    this.$message.error('删除失败');
+                }
+            });
+            },
+            addStore(){
+                axios.post('/store/insert',this.store).then(res=>{
+                    console.log(res);
+                if(res.data.code==20000){
+                    this.adddialogFormVisible= false
+                    this.$message({
+                        message: '添加成功',
+                        type: 'success'
+                    });
+                }else{
+                    //提示没有添加成功
+                    this.$message.error(res.data.msg);
+                }
+            });
+
+            },
+            updateStore(){
+                axios.post('/store/updateOne',this.storeByEdit).then(res=>{
+                    console.log(res);
+                if(res.data.code==20000){
+                    this.dialogFormVisible= false
+                    this.$message({
+                        message: '修改成功',
+                        type: 'success'
+                    });
+                }else{
+                    //提示没有修改成功
+                    this.$message.error(res.data.msg);
+                }
+
+            });
+            },
+            addBtn:function(){
+                this.adddialogFormVisible=true;
+            },
+            handleEdit(index, row) {
+                console.log(index, row);
+                this.dialogFormVisible=true;
+                this.storeByEdit=row;
+            },
+            handleDelete(index, row) {
+                console.log(index, row);
+            },
+
+            handleSizeChange(val) {
+                console.log(`每页 ${val} 条`);
+                this.loadTable(this.page, val)
+            },
+            handleCurrentChange(val) {
+                console.log(`当前页: ${val}`);
+                this.loadTable(val, this.limit)
+            },
+            loadTable: function (page, limit) {
+                axios.get("/store/selectPageAll", {
+                    params: {
+                        page: page,
+                        limit: limit,
+                    }
+                }).then(res=> {
+                    console.log(res)
+                    //把json数组赋值给tableData
+                    this.tableData = res.data.data.list;
+                    this.total = res.data.data.total;
+                var name = sessionStorage.getItem("username")
+                document.querySelector("#aa").innerHTML=name
+            });
+            }
+        },
+        created() {
+            this.loadTable(this.page, this.limit);
+        }
+
+    })
+</script>
+</body>
+</html>
